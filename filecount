@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "FilesTot  Dirs  FilesDir           Bytes  Name "
+echo "========  ====  ========  ==============  ====="
+for arg; do
+  if [ -d "$arg" ]; then
+    files_total=$(find "$arg" -type f | wc -l)
+    files_direct=$(find "$arg" -maxdepth 1 -type f | wc -l)
+    subdirs=$(find "$arg" -mindepth 1 -maxdepth 1 -type d | wc -l)
+    bytes=$(du -sb "$arg")
+    bytes=${bytes%%$'\t'*}
+    printf "%'8i  %'4i  %'8i  %'14i  %s\n" $files_total $subdirs $files_direct $bytes "$arg"
+  fi
+done

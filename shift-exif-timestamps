@@ -1,0 +1,19 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+
+die "Usage: ".(basename $0)." [-]h:m[:s] file ...\n" unless @ARGV > 1;
+
+my $shift = shift;
+die "Bad shift format, must be [-]h:m[:s].\n" unless $shift =~ /^-?\d+:\d+(:\d+)?$/;
+my $op = '+=';
+if ($shift =~ /-(.*)/) {
+  $op = '-=';
+  $shift = $1;
+}
+
+system('exiftool',
+  "-AllDates $op $shift", 
+  @ARGV);

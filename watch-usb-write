@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#watch "grep -e Dirty: -e Writeback: /proc/meminfo | perl -pe 's/(\d)(?=(\d{3})+(\D|$))/$1\./g'"
+watch "grep -e Dirty: -e Writeback: /proc/meminfo | add-thousands-separators"

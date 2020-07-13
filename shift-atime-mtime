@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+
+die "Usage: ".(basename $0)." [-]h:m[:s] file ...\n" unless @ARGV > 1;
+
+my $shift = shift;
+die "Bad shift format, must be [-]h:m[:s].\n" unless $shift =~ /^-?\d+:\d+(:\d+)?$/;
+
+my $shift_sec = 0;
+my @a = split /:/, $shift;
+push @a, 0 if @a == 2; # no seconds specified
+while (@a) {
+  $shift_sec *= 60;
+  $shift_sec += shift @a;
+}
+
+foreach (@ARGV) {
+  next unless -f;
+  my ($atime, $mtime) = (stat)[8,9];
+  utime $atime + $shift_sec, $mtime + $shift_sec, $_;
+}

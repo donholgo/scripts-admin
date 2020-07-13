@@ -1,0 +1,28 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use POSIX;
+
+my %outdirs;
+
+die "Usage: ".(basename $0)." format-string directory\nFormat string examples: '%Y-%m' by month, '%Y-%m-%d' by day, '%G-w%V' by week\n" unless @ARGV == 2;
+my $fmt = shift;
+my $dir = shift;
+die "No directory $dir\n" unless -d $dir;
+$dir =~ s-/*$--;
+my $base = basename $dir;
+foreach my $file (glob "$dir/*") {
+  my $mtime = (stat $file)[9];
+  my $outdir = "$base.".strftime($fmt, localtime($mtime));
+  ++$outdirs{$outdir};
+  if (!-d $outdir) {
+    mkdir $outdir or die "couldn't create $outdir\n";
+  }
+  my $target = "$outdir/".(basename $file);
+  rename $file, $target;
+}
+
+print "Moved files to:\n";
+print "$_ ($outdirs{$_})\n" foreach (sort keys %outdirs);

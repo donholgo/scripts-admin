@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [[ $# -lt 2 ]]; then
+  echo >&2 "Usage: $(basename $0) file ... target-directory"
+  exit 1
+fi
+
+args=( "$@" )
+if [[ ! -d ${args[-1]} ]]; then
+  echo >&2 "Last element must be a directory."
+  exit 2
+fi
+
+dir=${args[-1]}
+unset 'args[-1]'
+
+dir_user=$(stat --format='%U' "$dir")
+dir_group=$(stat --format='%G' "$dir")
+
+for file in ${args[@]}; do
+  sudo sh -c "mv \"$file\" \"$dir\" && chown -R $dir_user:$dir_group \"$dir/$file\""
+done

@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+
+die "Usage: ".(basename $0)." pattern file ...\n" unless @ARGV >= 2;
+
+my $pattern = shift;
+die "Pattern can only contain '.', 'x', '-', '+'.\n" unless $pattern =~ /^[-+.x]+$/;
+
+my $i = 0;
+for my $file (@ARGV) {
+  my $c = substr $pattern, $i, 1;
+  if ($c eq '-' || $c eq 'x') {
+    print "[x] $file\n";
+    unlink $file or warn "can't remove $file: $!\n";
+  } else {
+    print "[.] $file\n";
+  }
+  ++$i;
+  $i = 0 if $i == length $pattern;
+}
+

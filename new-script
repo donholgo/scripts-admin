@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+  echo >&2 "Usage: $(basename $0) file type"
+  exit 1
+fi
+
+file="$1"
+if [ -e "$file" ]; then
+  echo >&2 "$file exists already."
+  exit 2
+fi
+
+type="$2"
+if [ "$type" == "perl" ]; then
+  cat >"$file" <<EOF
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+
+die "Usage: ".(basename \$0)." ......." unless @ARGV;
+EOF
+elif [ "$type" == "sh" -o "$type" == "bash" ]; then
+  cat >"$file" <<EOF
+#!/bin/bash
+
+if [ \$# -eq 0 ]; then
+  echo >&2 "Usage: \$(basename \$0) ..."
+  exit 1
+fi
+EOF
+else
+  echo >&2 "Unknown type $type, only 'perl' and 'sh' are supported."
+  exit 3
+fi
+
+chmod +x "$file"
+vi + "$file"

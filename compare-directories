@@ -1,0 +1,58 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use Getopt::Long;
+
+my $merge = 0;
+GetOptions(
+  "merge" => \$merge,
+);
+
+
+die "Usage: ".(basename $0)." dir1 dir2\n" unless @ARGV == 2;
+
+my $columnwidth = 40;
+my $line = ("-" x ($columnwidth - 1));
+
+my $dir1 = shift;
+my $dir2 = shift;
+foreach ($dir1, $dir2) {
+  die "Error: no directory $_.\n" unless -d $_;
+  $_ =~ s-/$--;
+}
+
+printf "%-*s", $columnwidth, $_ foreach ($dir1, "common", $dir2);
+print "\n";
+print "$line $line $line\n";
+
+my %files1 = map { basename($_) => 1 } glob("$dir1/*");
+my %files2 = map { basename($_) => 1 } glob("$dir2/*");
+my %allfiles = map { $_ => 1 } (keys %files1, keys %files2);
+my $n1 = 0;
+my $n2 = 0;
+my $n3 = 0;
+foreach (sort keys %allfiles) {
+  if (defined $files1{$_} && !defined $files2{$_}) {
+    print $_;
+    ++$n1;
+  } elsif (defined $files1{$_} && defined $files2{$_}) {
+    print " " x $columnwidth, $_;
+    ++$n3;
+    unlink "$dir2/$_" if $merge;
+  } else {
+    print "  " x $columnwidth, $_;
+    ++$n2;
+    rename "$dir2/$_", "$dir1/$_" if $merge;
+  }
+  print "\n";
+}
+
+print "$line $line $line\n";
+printf "%-*i", $columnwidth, $_ foreach ($n1, $n3, $n2);
+print "\n";
+if ($merge) {
+  rmdir $dir2;
+  print "=== all files merged into $dir1 ($dir2 removed) ===\n";
+}

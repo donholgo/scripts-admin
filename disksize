@@ -1,0 +1,126 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use Getopt::Long;
+
+my $accumulate = 0;
+my $descending = 0;
+my $no_sort = 0;
+my $print_bytes = 0;
+my $print_total = 0;
+
+
+#my $sort_by_number = 0;
+#my $sort_by_size = 0;
+
+GetOptions(
+  'acc' => \$accumulate,
+  'bytes' => \$print_bytes,
+  'desc' => \$descending,
+  'nosort' => \$no_sort,
+  'total' => \$print_total,
+);
+#  "n|sort-by-number" => \$sort_by_number,
+#  "s|sort-by-size" => \$sort_by_size,
+
+die "Usage: ".(basename $0)." [options] dir ...\n" unless @ARGV;
+
+#die "Only one sorting option can be specified.\n" if $sort_by_number && $sort_by_size;
+
+
+
+die "Usage: ".(basename $0)." dir ...\n" unless @ARGV;
+
+my %size;
+my %type;
+my @files = @ARGV;
+my $maxsize = 0;
+foreach my $file (@files) {
+  my $size = 0;
+  if (-f $file) {
+    $type{$file} = 'f';
+    $size = -s $file;
+  } elsif (-d $file) {
+    $type{$file} = 'd';
+    ($size = `du -sb "$file"`) =~ s/\s.*//s;
+  } else {
+    #$size = -s $file;
+    $type{$file} = 'o';
+  }
+  $size{$file} = $size;
+  $maxsize = $size if $size > $maxsize;
+}
+
+# sort by ascending size
+unless ($no_sort) {
+  @files = sort {
+  $size{$a} <=> $size{$b} || $a cmp $b
+  } keys %size;
+}
+
+if ($descending) {
+  @files = reverse @files;
+}
+
+
+my $total = 0;
+foreach my $file (@files) {
+  $total += $size{$file};
+}
+
+if ($print_bytes) {
+  my $lensize = length(with_separators($maxsize));
+  my $lentotal = length(with_separators($total));
+  $total = 0;
+  foreach my $file (@files) {
+    printf "%${lensize}s", with_separators($size{$file});
+    $total += $size{$file};
+    if ($accumulate) {
+      printf "  %${lentotal}s", with_separators($total);
+    }
+    printf "  %s  %s\n", $type{$file}, $file;
+  }
+} else {
+  $total = 0;
+  foreach my $file (@files) {
+    printf "%s", human_readable($size{$file});
+    $total += $size{$file};
+    if ($accumulate) {
+      printf "  %s", human_readable($total);
+    }
+    printf "  %s  %s\n", $type{$file}, $file;
+  }
+}
+
+if ($print_total) {
+  if ($print_bytes) {
+    print '=' x length(with_separators($total)), "\n", with_separators($total), "\n";
+  } else {
+    print "======\n", human_readable($total), "\n";
+  }
+}
+
+
+sub with_separators {
+  my $x = shift;
+  1 while $x =~ s/(\d+)(\d{3})/$1.$2/;
+  return $x;
+}
+
+sub human_readable {
+  my $x = shift;
+  if ($x >= 1e12) {
+    return sprintf "%5.1fT", $x/1e12;
+  } elsif ($x >= 1e9) {
+    return sprintf "%5.1fG", $x/1e9;
+  } elsif ($x >= 1e6) {
+    return sprintf "%5.1fM", $x/1e6;
+  } elsif ($x >= 1e3) {
+    return sprintf "%5.1fk", $x/1e3;
+  } else {
+    return sprintf "%3i  B", $x;
+  }
+}
+

@@ -1,0 +1,14 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use POSIX;
+
+my $default_format = "%Y-%m-%dT%H:%M:%S";
+die "Usage: ".(basename $0)." [format] file\n(Default format is $default_format.)\n" unless (@ARGV == 1 || @ARGV == 2);
+
+my $format = @ARGV == 2 ? shift : $default_format;
+my $file = shift;
+my $mtime = (stat $file)[9] or die "couldn't stat $file: $!\n";
+print strftime($format, localtime($mtime)), "\n";

@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use Getopt::Long;
+
+my $sort_by_number = 0;
+my $sort_by_size = 0;
+my $reverse = 0;
+
+GetOptions(
+  "n|sort-by-number" => \$sort_by_number,
+  "s|sort-by-size" => \$sort_by_size,
+  "reverse" => \$reverse,
+);
+
+die "Usage: ".(basename $0)." [-sort-by-number|n] [-sort-by-size|s] [-reverse|r] dir ...\n" unless @ARGV;
+die "Only one sorting option can be specified.\n" if $sort_by_number && $sort_by_size;
+
+my @dirs = @ARGV;
+my %files;
+my %size;
+my $maxfiles = 0;
+my $maxsize = 0;
+foreach my $dir (@dirs) {
+  next unless -d $dir;
+  my $files = `find "$dir" -type f | wc -l`;
+  chomp $files;
+  $files{$dir} = $files;
+  $maxfiles = $files if $files > $maxfiles;
+  (my $size = `du -sb "$dir"`) =~ s/\s.*//;
+  chomp $size;
+  $size{$dir} = $size;
+  $maxsize = $size if $size > $maxsize;
+}
+
+if ($sort_by_number) {
+  @dirs = sort { $files{$a} <=> $files{$b} } @dirs;
+}
+if ($sort_by_size) {
+  @dirs = sort { $size{$a} <=> $size{$b} } @dirs;
+}
+@dirs = reverse @dirs if $reverse;
+
+my $lenfiles = length(with_separators($maxfiles));
+my $lensize = length(with_separators($maxsize));
+foreach my $dir (@dirs) {
+  printf "%${lenfiles}s  %${lensize}s  %s\n", with_separators($files{$dir}), with_separators($size{$dir}), $dir;
+}
+
+sub with_separators {
+  my $x = shift;
+  1 while $x =~ s/(\d+)(\d{3})/$1.$2/;
+  return $x;
+}
