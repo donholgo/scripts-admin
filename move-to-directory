@@ -1,0 +1,87 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use File::Copy;
+
+die "Usage: ".(basename $0)." dirname [ file ... ]\n" unless @ARGV;
+
+my $targetdir = shift;
+my @files = @ARGV;
+unless (@files) {
+  my @allfiles = glob("*");
+  @files = glob("*.jpg");
+  warn "(Moving only files *.jpg.)\n" unless @files == @allfiles;
+}
+#@files = glob("*") unless @files;
+exit 0 unless @files;
+
+if (-d $targetdir) {
+  #warn "Directory already exists, checking files for duplicates.\n";
+  $targetdir =~ s-/$--;
+  my %size_by_file;
+  my %files_by_size;
+  foreach (glob("$targetdir/*")) {
+    my $s = -s;
+    my $name = basename $_;
+    $size_by_file{$name} = $s;
+    push @{$files_by_size{$s}}, $name;
+  }
+  foreach my $file (@files) {
+    my $base = basename $file;
+    my $filesize = -s $file;
+    if (exists $size_by_file{$base}) {
+      # file name already exists - same file?
+      if ($filesize == $size_by_file{$base} && md5sum($file) eq md5sum("$targetdir/$base")) {
+	warn "$base already in target directory -> deleted.\n";
+	unlink $file or die "couldn't delete $file: $!";
+      } else {
+	# different files - add suffix to create new name
+	my ($core, $ext) = ($base =~ /(.*)\.(.*)/);
+	for (my $i = 1; ; ++$i) {
+	  my $newbase = "${core}_$i.$ext";
+	  unless (exists $size_by_file{$newbase}) {
+	    warn "Renaming $file to $newbase due to name clash.\n";
+	    move $file, "$targetdir/$newbase" or die "couldn't move $file to $targetdir/$newbase: $!";
+	    last;
+	  }
+	}
+      }
+    } else {
+      # no file with that name
+
+      # file already present under a different name?
+      my $existing = undef;
+      if (defined $files_by_size{$filesize}) {
+	my $filesum = md5sum($file);
+	foreach my $old (@{$files_by_size{$filesize}}) {
+	  if (md5sum("$targetdir/$old") eq $filesum) {
+	    $existing = $old;
+	    last;
+	  }
+	}
+      }
+      if (defined $existing) {
+	warn "$base already exists in target directory as $existing -> deleted.\n";
+	unlink $file or die "couldn't delete $file: $!";
+      } else {
+	$size_by_file{$base} = $filesize;
+	push @{$files_by_size{$filesize}}, $base;
+	move $file, $targetdir or die "couldn't move $file to $targetdir: $!";
+      }
+    }
+  }
+} else {
+  mkdir $targetdir or die "couldn't create $targetdir: $!";
+  foreach (@files) {
+    move $_, $targetdir or die "couldn't move $_ to $targetdir: $!";
+  }
+}
+
+
+sub md5sum {
+  my $file = shift;
+  (my $line = `md5sum $file`) =~ s/\s.*//;
+  return $line;
+}
