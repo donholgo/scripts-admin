@@ -1,0 +1,145 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use Digest::MD5;
+use File::Basename;
+use Getopt::Long;
+use POSIX qw(strftime);
+
+my $descending;
+my $keep_only_first;
+my $no_same_directory;
+my $no_timestamp;
+my $only_same_directory;
+my $quiet;
+my $remove_all;
+my $sort_by_basename;
+my $sort_by_path;
+my $sort_by_date;
+my $test;
+my $touch;
+GetOptions(
+  "desc" => \$descending,
+  "keep-only-first" => \$keep_only_first,
+  "no-same-directory" => \$no_same_directory,
+  "no-timestamp" => \$no_timestamp,
+  "only-same-directory" => \$only_same_directory,
+  "quiet" => \$quiet,
+  "remove-all" => \$remove_all,
+  "sort-by-basename" => \$sort_by_basename,
+  "sort-by-date" => \$sort_by_date,
+  "sort-by-path" => \$sort_by_path,
+  "test" => \$test,
+  "touch" => \$touch,
+);
+
+die "Usage:\n  ".(basename $0)." [options] file ...\n"
+  ."Options:\n"
+  ."  -desc, -keep-only-first, -no-same-directory, -no-timestamp,\n"
+  ."  -only-same-directory, -quiet, -remove-all, -sort-by-basename,\n"
+  ."  -sort-by-date, -sort-by-path, -test, -touch\n" unless @ARGV;
+
+my $total = 0;
+my %files_by_size;
+my %done;
+foreach (@ARGV) {
+  next unless -f;
+  if (defined $done{$_}) {
+    next;
+  } else {
+    $done{$_} = 1;
+  }
+  my $size = -s;
+  push @{$files_by_size{$size}}, $_;
+  $total += 1;
+}
+
+my $distinct = 0;
+my $with_duplicates = 0;
+foreach my $size (keys %files_by_size) {
+  next if @{$files_by_size{$size}} < 2;
+  my %files_by_md5sum;
+  foreach (@{$files_by_size{$size}}) {
+    my $md5sum = md5sum($_);
+    push @{$files_by_md5sum{$md5sum}}, $_;
+  }
+  foreach my $md5sum (keys %files_by_md5sum) {
+    next if @{$files_by_md5sum{$md5sum}} < 2;
+    my @f = @{$files_by_md5sum{$md5sum}};
+
+    my %dirs;
+    foreach (@f) {
+      $dirs{dirname $_} = 1;
+    }
+    next if $no_same_directory && keys %dirs == 1;
+    next if $only_same_directory && keys %dirs != 1;
+
+    my %atime;
+    my %mtime;
+    my $min_mtime;
+    foreach (@f) {
+      my ($atime, $mtime) = (stat)[8, 9];
+      $atime{$_} = $atime;
+      $mtime{$_} = $mtime;
+      $min_mtime = $mtime if (!defined $min_mtime || $mtime < $min_mtime);
+    }
+    my $min = strftime("%Y-%m-%d %H:%M", localtime $min_mtime);
+
+    # sorting
+    if ($sort_by_basename) {
+      @f = sort { basename($a) cmp basename($b) } @f;
+    } elsif ($sort_by_path) {
+      @f = sort @f;
+    } elsif ($sort_by_date) {
+      @f = sort { $mtime{$a} <=> $mtime{$b} } @f;
+    }
+    @f = reverse @f if $descending;
+
+    foreach (@f) {
+      my $t = strftime("%Y-%m-%d %H:%M", localtime $mtime{$_});
+      if ($touch) {
+	$t .= " ";
+	if ($min_mtime != $mtime{$_}) {
+	  $t .= utime($atime{$_}, $min_mtime, $_) ? "-" : "X";
+	} else {
+	  $t .= "=";
+	}
+	$t .= "> ".$min;
+      } elsif ($remove_all || $keep_only_first) {
+	$t .= " ";
+	if ($keep_only_first && $_ eq $f[0]) {
+	  $t .= ".";
+	} else {
+	  $t .= ($test || unlink $_) ? "X" : "?";
+	}
+      }
+      print "[$t] " unless $no_timestamp;
+      print "$_\n";
+    }
+    print "=" x 70, "\n";
+    $distinct += 1;
+    $with_duplicates += @f;
+  }
+}
+
+if ($with_duplicates || ($total && !$quiet)) {
+  print $distinct, " distinct, ",
+    $with_duplicates - $distinct, " redundant, total ",
+    $with_duplicates, " of ", $total, ".\n";
+}
+
+
+
+sub md5sum {
+  my $file = shift;
+  open(FILE, $file) or die "Can't open '$file': $!";
+  binmode(FILE);
+  my $md5 = Digest::MD5->new->addfile(*FILE)->hexdigest;
+  close FILE;
+  return $md5;
+
+  #(my $line = `md5sum $file`) =~ s/\s.*//;
+  #return $line;
+}
+
