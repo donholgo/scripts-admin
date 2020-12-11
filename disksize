@@ -6,10 +6,34 @@ use File::Basename;
 use Getopt::Long;
 
 my $accumulate = 0;
-my $descending = 0;
-my $no_sort = 0;
+my $reverse = 0;
+my $by_name = 0;
 my $print_bytes = 0;
 my $print_total = 0;
+my $help = 0;
+
+my $basename = basename $0;
+my $usage = <<EOF;
+Usage:
+  $basename [options] {file|dir} ...
+
+Print disk usage of the specified directories/files, by default
+sorted ascending by this usage.
+
+Options:
+  -acc
+    Print extra column with accumulated usage.
+  -b, -bytes
+    Print usage in bytes (default: human readable, e.g. '5.2M').
+  -n, -names
+    Sort by names (default: size).
+  -r, -reverse
+    Revert sorting.
+  -total
+    Print total usage.
+  -?, -help
+    Print usage and exit.
+EOF
 
 
 #my $sort_by_number = 0;
@@ -17,21 +41,22 @@ my $print_total = 0;
 
 GetOptions(
   'acc' => \$accumulate,
-  'bytes' => \$print_bytes,
-  'desc' => \$descending,
-  'nosort' => \$no_sort,
+  'b|bytes' => \$print_bytes,
+  'r|reverse' => \$reverse,
+  'n|names' => \$by_name,
   'total' => \$print_total,
+  'help|?' => \$help,
 );
 #  "n|sort-by-number" => \$sort_by_number,
 #  "s|sort-by-size" => \$sort_by_size,
 
-die "Usage: ".(basename $0)." [options] dir ...\n" unless @ARGV;
+if ($help) {
+  print $usage;
+  exit 0;
+}
+die $usage unless @ARGV;
 
 #die "Only one sorting option can be specified.\n" if $sort_by_number && $sort_by_size;
-
-
-
-die "Usage: ".(basename $0)." dir ...\n" unless @ARGV;
 
 my %size;
 my %type;
@@ -54,13 +79,13 @@ foreach my $file (@files) {
 }
 
 # sort by ascending size
-unless ($no_sort) {
+unless ($by_name) {
   @files = sort {
   $size{$a} <=> $size{$b} || $a cmp $b
   } keys %size;
 }
 
-if ($descending) {
+if ($reverse) {
   @files = reverse @files;
 }
 
