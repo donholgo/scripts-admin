@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use File::Compare;
+
+die "Usage: ".(basename $0)." file ..." unless @ARGV;
+
+my %copies;
+
+foreach my $file (@ARGV) {
+  if ($file =~ /^(.*?)\(\d+\)(\.\w+)$/) {
+    my $base = $1.$2;
+    push @{$copies{$base}}, $file;
+  }
+}
+
+foreach my $base (keys %copies) {
+  my @copies_for_base = sort @{$copies{$base}};
+  unless (-f $base) {
+    $base = shift @copies_for_base;
+  }
+  my $basesize = -s $base;
+  foreach my $copy (@copies_for_base) {
+    if ($basesize == -s $copy && compare($base, $copy) == 0) {
+      print "removing $copy\n";
+      unlink $copy;
+    }
+  }
+
+}
