@@ -22,6 +22,34 @@ use File::Basename;
 
 die "Usage: ".(basename \$0)." ......." unless @ARGV;
 EOF
+elif [ "$type" == "php" ]; then
+  cat >"$file" <<EOF
+#!/usr/bin/env php
+<?php
+
+if (count(\$argv) != 2) {
+  warn(usage());
+  exit(1);
+}
+
+
+
+function usage() {
+  global \$argv;
+  \$script = basename(\$argv[0]);
+  return <<<EOF
+Usage:
+  \$script ...
+
+...
+EOF;
+}
+
+function warn(\$s) {
+  fwrite(STDERR, \$s."\n");
+}
+?>
+EOF
 elif [ "$type" == "sh" -o "$type" == "bash" ]; then
   cat >"$file" <<EOF
 #!/bin/bash
