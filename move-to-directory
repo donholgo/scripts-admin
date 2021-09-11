@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Digest::MD5;
 use File::Basename;
 use File::Copy;
 
@@ -82,6 +83,7 @@ if (-d $targetdir) {
 
 sub md5sum {
   my $file = shift;
-  (my $line = `md5sum $file`) =~ s/\s.*//;
-  return $line;
+  open (my $fh, '<', $file) or die "Can't open '$file': $!";
+  binmode ($fh);
+  return Digest::MD5->new->addfile($fh)->hexdigest;
 }
