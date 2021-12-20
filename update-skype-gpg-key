@@ -1,0 +1,3 @@
+#!/bin/bash
+
+wget -q https://repo.skype.com/data/SKYPE-GPG-KEY -O- | sudo apt-key add -
