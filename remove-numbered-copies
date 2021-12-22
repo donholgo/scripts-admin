@@ -1,0 +1,26 @@
+#!/bin/bash
+
+files=("$@")
+
+if (( $# == 0 )); then
+  files=(*)
+fi
+
+for file in "${files[@]}"; do
+  if [[ ! -f $file ]]; then
+    continue
+  fi
+
+  ext=${file##*.}
+  base=${file%.*}
+  #echo "checking $file ..."
+  for ((i = 1; i < 10; ++i)); do
+    candidate="$base($i).$ext"
+    #echo "candidate: $candidate"
+    if [[ -f $candidate ]] && cmp --silent "$file" "$candidate"; then
+      echo "Removing $candidate (same as $file)."
+      rm "$candidate" || echo >&2 "Cannot remove $candidate: $!"
+    fi
+  done
+done
+
