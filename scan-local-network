@@ -1,0 +1,47 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+
+#die "Usage: ".(basename $0)." ......." unless @ARGV;
+
+my $ip = '';
+my $iplen = 0;
+my @ips;
+my %name;
+my $namelen = 0;
+my %mac;
+my $maclen = 0;
+my %device;
+my $devicelen = 0;
+
+open DATA, 'sudo nmap -sn 192.168.2.1-254 |' or die "can't run nmap: $!\n";
+while (<DATA>) {
+  chomp;
+  if (/Nmap scan report for ([0-9.]+)$/) {
+    $ip = $1;
+    push @ips, $ip;
+  } elsif (/Nmap scan report for (.*) \(([0-9.]+)\)$/) {
+    $ip = $2;
+    push @ips, $ip;
+    $name{$ip} = $1;
+    $namelen = length $1 if $namelen < length $1;
+  }
+  $iplen = length $ip if $iplen < length $ip;
+  if ($ip && /MAC Address: ([0-9A-F:]+) \((.*)\)/) {
+    $mac{$ip} = $1;
+    $maclen = length $1 if $maclen < length $1;
+    $device{$ip} = $2;
+    $devicelen = length $2 if $devicelen < length $2;
+  }
+}
+close DATA;
+
+for $ip (@ips) {
+  printf "%-*s", $iplen, $ip;
+  printf "  %-*s", $namelen, defined $name{$ip} ? $name{$ip} : '';
+  printf "  %-*s", $maclen, defined $mac{$ip} ? $mac{$ip} : '';
+  printf "  %-*s", $devicelen, defined $device{$ip} ? $device{$ip} : '';
+  print "\n";
+}
