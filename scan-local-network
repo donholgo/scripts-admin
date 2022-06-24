@@ -16,6 +16,14 @@ my $maclen = 0;
 my %device;
 my $devicelen = 0;
 
+my %known_macs = (
+  'E4:B9:7A:1D:14:B0' => 'pecora',
+  'A0:29:19:29:3B:09' => 'nb-hwahlen',
+  '68:17:29:61:25:6F' => 'alenovo',
+  'CC:61:E5:19:B8:0E' => 'Moto',
+  '88:AD:D2:2E:98:C4' => 'Galaxy',
+);
+
 open DATA, 'sudo nmap -sn 192.168.2.1-254 |' or die "can't run nmap: $!\n";
 while (<DATA>) {
   chomp;
@@ -30,8 +38,12 @@ while (<DATA>) {
   }
   $iplen = length $ip if $iplen < length $ip;
   if ($ip && /MAC Address: ([0-9A-F:]+) \((.*)\)/) {
-    $mac{$ip} = $1;
-    $maclen = length $1 if $maclen < length $1;
+    my $mac = $1;
+    $mac{$ip} = $mac;
+    $maclen = length $mac if $maclen < length $mac;
+    if (!$name{$ip} && defined $known_macs{$mac}) {
+      $name{$ip} = '('.$known_macs{$mac}.')';
+    }
     $device{$ip} = $2;
     $devicelen = length $2 if $devicelen < length $2;
   }
