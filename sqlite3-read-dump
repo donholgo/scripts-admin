@@ -1,0 +1,29 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+  echo >&2 "Usage: $(basename $0) dbfile dumpfile"
+  exit 1
+fi
+
+dbfile=$1
+if [[ ! -f $dbfile ]]; then
+  echo >&2 "No file $dbfile."
+  exit 1
+fi
+if [[ $(head -c 6 "$dbfile") != "SQLite" ]]; then
+  echo >&2 "$dbfile is no SQLite file."
+  exit 1
+fi
+
+dumpfile=$2
+if [[ ! -f $dbfile ]]; then
+  echo >&2 "No file $dbfile."
+  exit 1
+fi
+
+{
+  echo "PRAGMA journal_mode = OFF;"
+  echo "PRAGMA synchronous = OFF;"
+  cat "$dumpfile"
+} | sqlite3 "$dbfile"
+
