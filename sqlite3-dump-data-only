@@ -12,8 +12,8 @@ if [[ ! -f $dbfile ]]; then
 fi
 
 {
-  echo ".mode insert"
   for table in $(sqlite3 "$dbfile" .tables); do
+    echo ".mode insert $table"
     echo "select * from $table;"
   done
 } | sqlite3 "$dbfile"
