@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [ $# -ne 1 ]; then
+  echo >&2 "Usage: $(basename $0) dbfile"
+  exit 1
+fi
+
+dbfile=$1
+if [[ ! -f $dbfile ]]; then
+  echo >&2 "No file $dbfile."
+  exit 1
+fi
+
+sqlite3 "$dbfile" .schema
+
