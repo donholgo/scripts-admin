@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]; then
-  echo >&2 "Usage: $(basename -- "$0") dbfile dumpfile"
+if (( $# < 2 )); then
+  echo >&2 "Usage: $(basename -- "$0") dbfile dumpfile ..."
   exit 1
 fi
 
@@ -14,20 +14,21 @@ if [[ $(head -c 6 "$dbfile") != "SQLite" ]]; then
   echo >&2 "$dbfile is no SQLite file."
   exit 1
 fi
+shift
 
-dumpfile=$2
-if [[ ! -f $dbfile ]]; then
-  echo >&2 "No file $dbfile."
-  exit 1
-fi
+for sqlfile; do
+  if ! [[ -f $sqlfile ]]; then
+    echo >&2 "No file $sqlfile."
+    exit 1
+  fi
+done
 
 {
-  cat <<EOF
+  cat - "$@" <<EOF
 .output /dev/null
 PRAGMA journal_mode = OFF;
 PRAGMA synchronous = OFF;
 .output stdout
 EOF
-  cat "$dumpfile"
 } | sqlite3 "$dbfile"
 
