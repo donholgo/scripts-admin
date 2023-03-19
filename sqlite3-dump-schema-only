@@ -11,5 +11,5 @@ if [[ ! -f $dbfile ]]; then
   exit 1
 fi
 
-sqlite3 "$dbfile" .schema
+sqlite3 "$dbfile" .schema | grep -v sqlite_sequence
 
