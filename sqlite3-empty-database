@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if (( $# != 1 )); then
+  echo >&2 "Usage: $(basename -- \"$0\") dbfile"
+  exit 1
+fi
+dbfile=$1
+
+if [[ -f $dbfile ]]; then
+  rm "$dbfile"
+fi
+
+sqlite3 "$dbfile" "VACUUM;"
+
