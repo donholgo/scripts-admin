@@ -22,8 +22,12 @@ if [[ ! -f $dbfile ]]; then
 fi
 
 {
-  echo "PRAGMA journal_mode = OFF;"
-  echo "PRAGMA synchronous = OFF;"
+  cat <<EOF
+.output /dev/null
+PRAGMA journal_mode = OFF;
+PRAGMA synchronous = OFF;
+.output stdout
+EOF
   cat "$dumpfile"
 } | sqlite3 "$dbfile"
 
