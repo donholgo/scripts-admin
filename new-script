@@ -55,7 +55,7 @@ elif [ "$type" == "sh" -o "$type" == "bash" ]; then
 #!/bin/bash
 
 if [ \$# -eq 0 ]; then
-  echo >&2 "Usage: \$(basename -- \"\$0\") ..."
+  echo >&2 "Usage: \$(basename -- "\$0") ..."
   exit 1
 fi
 EOF
