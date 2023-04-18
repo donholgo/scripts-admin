@@ -3,9 +3,9 @@
 keyringdir="/etc/apt/keyrings"
 [[ -d $keyringdir ]] || sudo mkdir -p "$keyringdir"
 
-key_url="https://repo.skype.com/data/SKYPE-GPG-KEY"
-target="$keyringdir/skype-keyring.gpg"
-source_list="/etc/apt/sources.list.d/skype-stable.list"
+key_url="https://download.mono-project.com/repo/xamarin.gpg"
+target="$keyringdir/mono.gpg"
+source_list="/etc/apt/sources.list.d/mono-official-stable.list"
 
 # make sure keyring file is referenced in source list, e.g.:
 # deb [arch=amd64,signed-by=/etc/apt/keyrings/skype-keyring.gpg] https://repo.skype.com/deb stable main
