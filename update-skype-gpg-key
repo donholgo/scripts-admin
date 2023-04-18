@@ -1,3 +1,24 @@
 #!/bin/bash
 
-wget -q https://repo.skype.com/data/SKYPE-GPG-KEY -O- | sudo apt-key add -
+tmpfile=$(mktemp --tmpdir "skype-keyring.XXXXXX.gpg")
+trap "rm -f $tmpfile" EXIT
+
+keyringdir="/etc/apt/keyrings"
+target="$keyringdir/skype-keyring.gpg"
+
+# make sure keyring file is referenced in source list, e.g.:
+# deb [arch=amd64,signed-by=/etc/apt/keyrings/skype-keyring.gpg] https://repo.skype.com/deb stable main
+skype_source="/etc/apt/sources.list.d/skype-stable.list"
+if ! grep -q "signed-by=$target" "$skype_source"; then
+  echo >&2 "Error: $target is not configured as keyring file in $skype_source, should be:"
+  echo >&2 "deb [... signed-by=$target] ..."
+  exit 1
+fi
+
+echo "Downloading Skype GPG key ..."
+wget -qO - https://repo.skype.com/data/SKYPE-GPG-KEY | gpg --dearmor >"$tmpfile"
+
+echo "Moving key to $target ..."
+sudo mv "$tmpfile" "$target"
+sudo chown root:root "$target"
+sudo chmod 644 "$target"
