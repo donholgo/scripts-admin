@@ -4,6 +4,8 @@ tmpfile=$(mktemp --tmpdir "skype-keyring.XXXXXX.gpg")
 trap "rm -f $tmpfile" EXIT
 
 keyringdir="/etc/apt/keyrings"
+[[ -d $keyringdir ]] || sudo mkdir "$keyringdir"
+
 target="$keyringdir/skype-keyring.gpg"
 
 # make sure keyring file is referenced in source list, e.g.:
