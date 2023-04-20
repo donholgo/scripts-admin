@@ -1,0 +1,65 @@
+#!/bin/bash
+
+if (( "$#" != 1 )); then
+  echo >&2 "Usage: $(basename -- "$0") {brave|google|mono|skype}"
+  exit 1
+fi
+
+keydir="/etc/apt/keyrings"
+sourcelistdir="/etc/apt/sources.list.d"
+
+keyurl=""
+keyfilename=""
+sourcelistfilename=""
+
+case "$1" in
+  brave)
+    keyurl="https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg"
+    keyfilename="brave-browser-keyring.gpg"
+    sourcelistfilename="brave-browser-release.list"
+    ;;
+  google)
+    keyurl="https://dl.google.com/linux/linux_signing_key.pub"
+    keyfilename="google-chrome.gpg"
+    sourcelistfilename="google-chrome.list"
+    ;;
+  mono)
+    keyurl="https://download.mono-project.com/repo/xamarin.gpg"
+    keyfilename="mono.gpg"
+    sourcelistfilename="mono-official-stable.list"
+    ;;
+  skype)
+    keyurl="https://repo.skype.com/data/SKYPE-GPG-KEY"
+    keyfilename="skype-keyring.gpg"
+    sourcelistfilename="skype-stable.list"
+    ;;
+  *)
+    ;;
+esac
+if [[ -z $keyurl ]] || [[ -z $keyfilename ]] || [[ -z $sourcelistfilename ]]; then
+  echo >&2 "Error: variable not set correctly, please check the script."
+  exit 2
+fi
+
+sourcelistfile="$sourcelistdir/$sourcelistfilename"
+keyfile="$keydir/$keyfilename"
+
+# make sure key file is referenced in source list, e.g.:
+# deb [arch=amd64,signed-by=/etc/apt/keyrings/skype-keyring.gpg] https://repo.skype.com/deb stable main
+if ! grep -q "signed-by=$keyfile" "$sourcelistfile"; then
+  echo >&2 "Warning: $keyfile is not configured as keyring file in $sourcelistfile - should be:"
+  echo >&2 "deb [... signed-by=$keyfile ...] ..."
+fi
+
+if ! sudo -v; then
+  echo >&2 "sudo authentification failed, quitting."
+  exit 3
+fi
+
+[[ -d $keydir ]] || sudo mkdir -p "$keydir"
+
+echo "Downloading GPG key from $keyurl to $keyfile ..."
+wget -qO - "$keyurl" \
+  | gpg --dearmor \
+  | sudo tee "$keyfile" >/dev/null
+

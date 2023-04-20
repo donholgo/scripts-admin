@@ -1,3 +1,0 @@
-#!/bin/bash
-
-wget -q https://dl.google.com/linux/linux_signing_key.pub -O- | sudo apt-key add -
