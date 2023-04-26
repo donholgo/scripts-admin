@@ -38,6 +38,7 @@ case "$1" in
     keyurl="https://packages.microsoft.com/keys/microsoft.asc"
     keyfilename="packages.microsoft.gpg"
     sourcelistfilename="vscode.list"
+    ;;
   *)
     ;;
 esac
@@ -51,7 +52,9 @@ keyfile="$keydir/$keyfilename"
 
 # make sure key file is referenced in source list, e.g.:
 # deb [arch=amd64,signed-by=/etc/apt/keyrings/skype-keyring.gpg] https://repo.skype.com/deb stable main
-if ! grep -q "signed-by=$keyfile" "$sourcelistfile"; then
+if ! [[ -f $sourcelistfile ]]; then
+  echo >&2 "Warning: source list file $sourcelistfile not found."
+elif ! grep -q "signed-by=$keyfile" "$sourcelistfile"; then
   echo >&2 "Warning: $keyfile is not configured as keyring file in $sourcelistfile - should be:"
   echo >&2 "deb [... signed-by=$keyfile ...] ..."
 fi
