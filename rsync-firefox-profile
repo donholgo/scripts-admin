@@ -1,0 +1,15 @@
+#!/bin/bash
+
+params=(-aP)
+#params+=(--dry-run)
+params+=(--include storage/default)
+params+=(--include storage/default/moz-extension+++*)
+params+=(--exclude storage/default/*)
+params+=(--exclude storage/*)
+params+=(--exclude datareporting)
+params+=(--exclude minidumps)
+params+=(--delete)
+params+=(--delete-excluded)
+
+rsync "${params[@]}" "$@"
+
