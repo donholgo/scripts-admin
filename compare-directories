@@ -1,58 +1,90 @@
-#!/usr/bin/perl
-
-use strict;
-use warnings;
-use File::Basename;
-use Getopt::Long;
-
-my $merge = 0;
-GetOptions(
-  "merge" => \$merge,
-);
-
-
-die "Usage: ".(basename $0)." dir1 dir2\n" unless @ARGV == 2;
-
-my $columnwidth = 40;
-my $line = ("-" x ($columnwidth - 1));
-
-my $dir1 = shift;
-my $dir2 = shift;
-foreach ($dir1, $dir2) {
-  die "Error: no directory $_.\n" unless -d $_;
-  $_ =~ s-/$--;
+#!/usr/bin/env php
+<?php
+if (count($argv) != 3) {
+  warn(usage());
+  exit(1);
 }
 
-printf "%-*s", $columnwidth, $_ foreach ($dir1, "common", $dir2);
-print "\n";
-print "$line $line $line\n";
+$dir1 = rtrim($argv[1], '/');
+$dir2 = rtrim($argv[2], '/');
 
-my %files1 = map { basename($_) => 1 } glob("$dir1/*");
-my %files2 = map { basename($_) => 1 } glob("$dir2/*");
-my %allfiles = map { $_ => 1 } (keys %files1, keys %files2);
-my $n1 = 0;
-my $n2 = 0;
-my $n3 = 0;
-foreach (sort keys %allfiles) {
-  if (defined $files1{$_} && !defined $files2{$_}) {
-    print $_;
-    ++$n1;
-  } elsif (defined $files1{$_} && defined $files2{$_}) {
-    print " " x $columnwidth, $_;
-    ++$n3;
-    unlink "$dir2/$_" if $merge;
-  } else {
-    print "  " x $columnwidth, $_;
-    ++$n2;
-    rename "$dir2/$_", "$dir1/$_" if $merge;
+foreach ([$dir1, $dir2] as $dir) {
+  if (!is_dir($dir)) {
+    warn("No directory {$dir}.");
+    exit(2);
   }
-  print "\n";
 }
 
-print "$line $line $line\n";
-printf "%-*i", $columnwidth, $_ foreach ($n1, $n3, $n2);
-print "\n";
-if ($merge) {
-  rmdir $dir2;
-  print "=== all files merged into $dir1 ($dir2 removed) ===\n";
+$files_by_md5sum = [];
+foreach ([$dir1, $dir2] as $dir) {
+  foreach (glob("{$dir}/*") as $file) {
+    $md5sum = md5_file($file);
+    if (!array_key_exists($md5sum, $files_by_md5sum)) {
+      $files_by_md5sum[$md5sum] = [];
+    }
+    $files_by_md5sum[$md5sum][] = $file;
+  }
+}
+
+$only_in_dir1 = [];
+$only_in_dir2 = [];
+$common = [];
+
+foreach ($files_by_md5sum as $md5sum => $files) {
+  $count_dir1 = 0;
+  $count_dir2 = 0;
+  foreach ($files as $file) {
+    if (str_starts_with($file, $dir1)) {
+      ++$count_dir1;
+    } else {
+      ++$count_dir2;
+    }
+  }
+  if ($count_dir1 && $count_dir2) {
+    $common[] = $md5sum;
+  } else if ($count_dir1) {
+    $only_in_dir1[] = $md5sum;
+  } else {
+    $only_in_dir2[] = $md5sum;
+  }
+}
+
+if (!$only_in_dir1 && !$only_in_dir2) {
+  echo "Directories contain the same files.\n";
+  exit(0);
+}
+
+
+if ($only_in_dir1) {
+  echo "ONLY IN {$dir1} (".count($only_in_dir1)."):\n";
+  foreach ($only_in_dir1 as $md5sum) {
+    echo "  - ", implode(' = ', $files_by_md5sum[$md5sum]), "\n";
+  }
+}
+if ($only_in_dir2) {
+  echo "ONLY IN {$dir2} (".count($only_in_dir2)."):\n";
+  foreach ($only_in_dir2 as $md5sum) {
+    echo "  - ", implode(' = ', $files_by_md5sum[$md5sum]), "\n";
+  }
+}
+if ($common) {
+  echo "COMMON: (".count($common).")\n";
+  foreach ($common as $md5sum) {
+    echo "  - ", implode(' = ', $files_by_md5sum[$md5sum]), "\n";
+  }
+}
+
+
+function warn($s) {
+  fwrite(STDERR, $s."\n");
+}
+
+
+function usage() {
+  global $argv;
+  $script = basename($argv[0]);
+  return <<<EOF
+Usage:
+  $script dir1 dir2
+EOF;
 }
