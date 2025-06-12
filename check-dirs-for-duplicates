@@ -22,7 +22,7 @@ if (count($dirs) < 2) {
 }
 
 $mdsum_by_file = [];
-$files_by_md5sum = [];
+$files_by_size = [];
 $files_by_dir = [];
 foreach ($dirs as $dir) {
   $files_by_dir[$dir] = [];
@@ -30,28 +30,27 @@ foreach ($dirs as $dir) {
     if (!is_file($file)) continue;
 
     $files_by_dir[$dir][] = $file;
-    $md5sum = md5_file($file);
-    $md5sum_by_file[$file] = $md5sum;
-    if (!array_key_exists($md5sum, $files_by_md5sum)) {
-      $files_by_md5sum[$md5sum] = [];
+    $size = filesize($file);
+    $size_by_file[$file] = $size;
+    if (!array_key_exists($size, $files_by_size)) {
+      $files_by_size[$size] = [];
     }
-    $files_by_md5sum[$md5sum][] = $file;
+    $files_by_size[$size][] = $file;
   }
 }
 
 // only directories with at least one duplicate file
 // need to be considered further
-$dirs_with_duplicate_files = [];
-foreach ($files_by_md5sum as $mdsum => $files) {
+$candidate_dirs = [];
+foreach ($files_by_size as $mdsum => $files) {
   if (count($files) == 1) continue;
   foreach ($files as $file) {
-    $dirs_with_duplicate_files[] = dirname($file);
+    $candidate_dirs[] = dirname($file);
   }
 }
-if (!$dirs_with_duplicate_files) exit(0);
+if (!$candidate_dirs) exit(0);
 
-$dirs = array_values(array_unique($dirs_with_duplicate_files));
-
+$dirs = array_values(array_unique($candidate_dirs));
 
 for ($i = 0; $i < count($dirs) - 1; ++$i) {
   $dir1 = $dirs[$i];
@@ -63,17 +62,12 @@ for ($i = 0; $i < count($dirs) - 1; ++$i) {
     $count2 = count($files2);
     $common_files_dir1 = [];
     $common_files_dir2 = [];
-    //echo "compare {$dir1} and {$dir2} ...\n";
     foreach ($files_by_dir[$dir1] as $file1) {
-      $md5sum1 = $md5sum_by_file[$file1];
-      //echo "file1 = {$file1}, md5sum1 = {$md5sum1}\n";
-      foreach ($files_by_dir[$dir2] as $file2) {
-        $md5sum2 = $md5sum_by_file[$file2];
-        //echo " - file2 = {$file2}, md5sum2 = {$md5sum2}\n";
-        if ($md5sum1 == $md5sum2) {
+      $size1 = $size_by_file[$file1];
+      foreach ($files_by_size[$size1] as $file) {
+        if (dirname($file) == $dir2 && md5_file($file1) == md5_file($file)) {
           $common_files_dir1[] = $file1;
-          $common_files_dir2[] = $file2;
-          continue;
+          $common_files_dir2[] = $file;
         }
       }
     }
