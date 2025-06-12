@@ -1,0 +1,114 @@
+#!/usr/bin/env php
+<?php
+
+if (count($argv) < 3) {
+  warn(usage());
+  exit(1);
+}
+
+$dirs = [];
+for ($i = 1; $i < count($argv); ++$i) {
+  $dir = rtrim($argv[$i]);
+  if (is_dir($dir)) {
+    $dirs[] = $dir;
+  } else {
+    warn("No directory {$dir} (skipping).");
+  }
+}
+
+if (count($dirs) < 2) {
+  warn("At least two directories must be given.");
+  exit(1);
+}
+
+$mdsum_by_file = [];
+$files_by_md5sum = [];
+$files_by_dir = [];
+foreach ($dirs as $dir) {
+  $files_by_dir[$dir] = [];
+  foreach (glob("{$dir}/*") as $file) {
+    if (!is_file($file)) continue;
+
+    $files_by_dir[$dir][] = $file;
+    $md5sum = md5_file($file);
+    $md5sum_by_file[$file] = $md5sum;
+    if (!array_key_exists($md5sum, $files_by_md5sum)) {
+      $files_by_md5sum[$md5sum] = [];
+    }
+    $files_by_md5sum[$md5sum][] = $file;
+  }
+}
+
+// only directories with at least one duplicate file
+// need to be considered further
+$dirs_with_duplicate_files = [];
+foreach ($files_by_md5sum as $mdsum => $files) {
+  if (count($files) == 1) continue;
+  foreach ($files as $file) {
+    $dirs_with_duplicate_files[] = dirname($file);
+  }
+}
+if (!$dirs_with_duplicate_files) exit(0);
+
+$dirs = array_values(array_unique($dirs_with_duplicate_files));
+
+
+for ($i = 0; $i < count($dirs) - 1; ++$i) {
+  $dir1 = $dirs[$i];
+  $files1 = $files_by_dir[$dir1];
+  $count1 = count($files1);
+  for ($j = $i + 1; $j < count($dirs); ++$j) {
+    $dir2 = $dirs[$j];
+    $files2 = $files_by_dir[$dir2];
+    $count2 = count($files2);
+    $common_files_dir1 = [];
+    $common_files_dir2 = [];
+    //echo "compare {$dir1} and {$dir2} ...\n";
+    foreach ($files_by_dir[$dir1] as $file1) {
+      $md5sum1 = $md5sum_by_file[$file1];
+      //echo "file1 = {$file1}, md5sum1 = {$md5sum1}\n";
+      foreach ($files_by_dir[$dir2] as $file2) {
+        $md5sum2 = $md5sum_by_file[$file2];
+        //echo " - file2 = {$file2}, md5sum2 = {$md5sum2}\n";
+        if ($md5sum1 == $md5sum2) {
+          $common_files_dir1[] = $file1;
+          $common_files_dir2[] = $file2;
+          continue;
+        }
+      }
+    }
+    $count_common = count($common_files_dir1);
+
+    if (!$count_common) continue;
+
+    if ($count1 == $count_common && $count2 == $count_common) {
+      echo "{$dir1} and {$dir2} contain the same files.\n";
+    }
+    if ($count_common == $count1 && $count_common < $count2) {
+      echo "{$dir1} is contained in {$dir2}.\n";
+    }
+    if ($count_common == $count2 && $count_common < $count1) {
+      echo "{$dir2} is contained in {$dir1}.\n";
+    }
+    if ($count_common < $count1 && $count_common < $count2) {
+      echo "{$dir1} ({$count1}) and {$dir2} ({$count2}) share {$count_common} file(s).\n";
+    }
+  }
+}
+
+
+function usage() {
+  global $argv;
+  $script = basename($argv[0]);
+  return <<<EOF
+Usage:
+  $script <dir1> <dir2> ...
+
+Check the directories for files contained in more than one of them.
+EOF;
+}
+
+function warn($s) {
+  fwrite(STDERR, $s."\n");
+}
+?>
