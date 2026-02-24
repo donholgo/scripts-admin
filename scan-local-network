@@ -4,8 +4,6 @@ use strict;
 use warnings;
 use File::Basename;
 
-#die "Usage: ".(basename $0)." ......." unless @ARGV;
-
 my $ip = '';
 my $iplen = 0;
 my @ips;
@@ -17,14 +15,14 @@ my %device;
 my $devicelen = 0;
 
 my %known_macs = (
-  'E4:B9:7A:1D:14:B0' => 'pecora',
+  'E4:B9:7A:1D:14:B0' => 'pecora LAN',
+  '38:BA:F8:46:F1:AE' => 'pecora WiFi',
   'A0:29:19:29:3B:09' => 'nb-hwahlen',
   '68:17:29:61:25:6F' => 'alenovo',
-  'CC:61:E5:19:B8:0E' => 'Moto',
-  '88:AD:D2:2E:98:C4' => 'Galaxy',
+  'B8:97:5A:5A:7C:0A' => 'mucca',
 );
 
-open DATA, 'sudo nmap -sn 192.168.2.1-254 |' or die "can't run nmap: $!\n";
+open DATA, 'sudo nmap -sP 192.168.2.1-254 |' or die "can't run nmap: $!\n";
 while (<DATA>) {
   chomp;
   if (/Nmap scan report for ([0-9.]+)$/) {
@@ -34,23 +32,30 @@ while (<DATA>) {
     $ip = $2;
     push @ips, $ip;
     $name{$ip} = $1;
-    $namelen = length $1 if $namelen < length $1;
   }
   $iplen = length $ip if $iplen < length $ip;
   if ($ip && /MAC Address: ([0-9A-F:]+) \((.*)\)/) {
     my $mac = $1;
     $mac{$ip} = $mac;
-    $maclen = length $mac if $maclen < length $mac;
     if (!$name{$ip} && defined $known_macs{$mac}) {
       $name{$ip} = '('.$known_macs{$mac}.')';
     }
     $device{$ip} = $2;
-    $devicelen = length $2 if $devicelen < length $2;
   }
 }
 close DATA;
 
-for $ip (@ips) {
+$namelen = 0;
+$maclen = 0;
+$devicelen = 0;
+
+for my $ip (@ips) {
+  $devicelen = length $device{$ip} if defined $device{$ip} && $devicelen < length $device{$ip};
+  $maclen = length $mac{$ip} if defined $mac{$ip} && $maclen < length $mac{$ip};
+  $namelen = length $name{$ip} if defined $name{$ip} && $namelen < length $name{$ip};
+}
+
+for my $ip (@ips) {
   printf "%-*s", $iplen, $ip;
   printf "  %-*s", $namelen, defined $name{$ip} ? $name{$ip} : '';
   printf "  %-*s", $maclen, defined $mac{$ip} ? $mac{$ip} : '';
