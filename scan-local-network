@@ -22,7 +22,17 @@ my %known_macs = (
   'B8:97:5A:5A:7C:0A' => 'mucca',
 );
 
-open DATA, 'sudo nmap -sP 192.168.2.1-254 |' or die "can't run nmap: $!\n";
+my %nets;
+open IFCONFIG, 'ifconfig |' or die "cannot run 'ifconfig': $!\n";
+while (<IFCONFIG>) {
+  $nets{$1} = 1 while /\b(192\.168\.\d+)\.\d+/g;
+}
+close IFCONFIG;
+
+my @nets = keys %nets;
+die "Cannot identify subnet, candidates are: ".join(@nets, ", ")."\n" if @nets != 1;
+
+open DATA, "sudo nmap -sP ${nets[0]}.1-254 |" or die "cannot run nmap: $!\n";
 while (<DATA>) {
   chomp;
   if (/Nmap scan report for ([0-9.]+)$/) {
