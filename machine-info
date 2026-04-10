@@ -1,8 +1,0 @@
-#!/bin/bash
-
-cd /sys/class/dmi/id/
-
-for file in sys_vendor product_name bios_release bios_date; do
-  printf '%-12s: %s\n' "$file" "$(cat "$file")"
-done
-
