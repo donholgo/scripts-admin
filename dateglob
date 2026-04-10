@@ -1,0 +1,47 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use File::Basename;
+use POSIX qw(strftime);
+
+die "Usage: ".(basename $0)." [date]" unless @ARGV <= 1;
+
+
+my $arg = shift || 'today';
+my $date = arg2date($arg);
+print "$date\n" if $date;
+
+
+sub arg2date {
+  my $arg = shift;
+
+  my @t = localtime;
+  my $day = pad(strftime('%d', @t));
+  my $month = pad(strftime('%m', @t));
+  my $year = pad(strftime('%Y', @t));
+
+  if ($arg eq 'd' || $arg eq 'day' || $arg eq 'today') {
+    return $year.$month.$day;
+  } elsif ($arg =~ /^\d{1,2}$/) {
+    # day
+    return $year.$month.pad($arg);
+  } elsif ($arg =~ /^20\d{6}$/) {
+    # full date
+    return $arg;
+  } elsif ($arg =~ /^\d{4}$/) {
+    # month + day
+    return $year.$arg;
+  } elsif ($arg eq 'm' || $arg eq 'month') {
+    return $year.$month.'*';
+  } elsif ($arg =~ /^20\d{4}$/) {
+    # year + month
+    return $arg.'*';
+  }
+  return '';
+}
+
+sub pad {
+  my $x = shift;
+  return sprintf('%02d', $x);
+}
