@@ -1,3 +1,4 @@
 #!/bin/bash
 
 sudo bash -c "apt update && apt upgrade && apt autoremove --purge -y && apt clean"
+mintupdate-cli --refresh list
