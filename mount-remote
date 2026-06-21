@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+  echo >&2 "Usage: $(basename $0) remote"
+  exit 1
+fi
+
+remote="$1"
+
+#if ! grep -q "Host $remote$" $HOME/.ssh/config; then
+#  printf >&2 'Host %s not present in ssh config.\n' "$remote"
+#  exit 1
+#fi
+
+mountpoint="/mnt/$remote"
+if [[ ! -d $mountpoint ]]; then
+  printf 'Create mount point %s ...\n' "$mountpoint"
+  sudo mkdir "$mountpoint"
+  sudo chown $USER:$USER "$mountpoint"
+fi
+
+printf 'Mounting %s: to %s ...\n' "$remote" "$mountpoint"
+sshfs -C "$remote:" "$mountpoint"

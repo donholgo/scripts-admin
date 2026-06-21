@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+  echo >&2 "Usage: $(basename $0) remote"
+  exit 1
+fi
+
+remote="$1"
+mountpoint="/mnt/$remote"
+if mount | grep -q "on $mountpoint type fuse.sshfs"; then
+  printf 'Unmounting %s ...\n' "$mountpoint"
+  fusermount -u "$mountpoint"
+else
+  printf >&2 'Nothing mounted on %s.\n' "$mountpoint"
+fi
