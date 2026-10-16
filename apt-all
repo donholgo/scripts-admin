@@ -1,4 +1,17 @@
 #!/bin/bash
 
+locks=(
+  /var/lib/apt/lists/lock
+  /var/lib/dpkg/lock
+  /var/lib/dpkg/lock-frontend
+)
+for lock in "${locks[@]}"; do
+  pid=$(sudo fuser -v "$lock" 2>/dev/null)
+  if [ -n "$pid" ]; then
+    echo >&2 "${lock} is locked by process ${pid# }."
+    exit 1
+  fi
+done
+
 sudo bash -c "apt update && apt upgrade && apt autoremove --purge -y && apt clean"
 mintupdate-cli --refresh list
